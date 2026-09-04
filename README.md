@@ -1,4 +1,4 @@
-# vm-existing-vnet-kit
+# Virtual Machine in an Existing VNet
 
 Deploy an Azure VM into a virtual network that already exists, written three ways: ARM Template, Bicep, and Terraform.
 
