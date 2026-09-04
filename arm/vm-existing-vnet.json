@@ -1,0 +1,173 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "author": "Shannon Eldridge-Kuehn",
+    "created": "2026-09-04",
+    "description": "Deploys a Windows Server VM and NIC into an existing virtual network subnet. The vNet and subnet are referenced, never created.",
+    "repository": "https://github.com/sbkuehn/vm-existing-vnet-kit"
+  },
+  "parameters": {
+    "vmName": {
+      "type": "string",
+      "defaultValue": "vm-app-01",
+      "maxLength": 15,
+      "metadata": { "description": "Name of the virtual machine. Also used as the computer name." }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D2s_v5",
+      "metadata": { "description": "VM size. Confirm availability in the target region before deploying." }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": { "description": "Local administrator username." }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": { "description": "Local administrator password." }
+    },
+    "existingVnetSubscriptionId": {
+      "type": "string",
+      "defaultValue": "[subscription().subscriptionId]",
+      "metadata": { "description": "Subscription that owns the existing virtual network. Defaults to the deployment subscription." }
+    },
+    "existingVnetResourceGroup": {
+      "type": "string",
+      "defaultValue": "rg-network-prod",
+      "metadata": { "description": "Resource group that owns the existing virtual network." }
+    },
+    "existingVnetName": {
+      "type": "string",
+      "defaultValue": "vnet-hub-prod",
+      "metadata": { "description": "Name of the existing virtual network." }
+    },
+    "existingSubnetName": {
+      "type": "string",
+      "defaultValue": "snet-servers",
+      "metadata": { "description": "Name of the existing subnet the NIC will join." }
+    },
+    "privateIpAllocationMethod": {
+      "type": "string",
+      "defaultValue": "Dynamic",
+      "allowedValues": [ "Dynamic", "Static" ],
+      "metadata": { "description": "Dynamic lets the platform pick an address. Static requires privateIpAddress." }
+    },
+    "privateIpAddress": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": { "description": "Static private IP. Only used when privateIpAllocationMethod is Static." }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": { "description": "Region for the VM and NIC. Must match the region of the existing vNet." }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": { "description": "Tags applied to the VM and NIC." }
+    }
+  },
+  "variables": {
+    "nicName": "[format('nic-{0}', parameters('vmName'))]",
+    "osDiskName": "[format('osdisk-{0}', parameters('vmName'))]",
+    "subnetId": "[resourceId(parameters('existingVnetSubscriptionId'), parameters('existingVnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('existingSubnetName'))]",
+    "nicId": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-11-01",
+      "name": "[variables('nicName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "[parameters('privateIpAllocationMethod')]",
+              "privateIPAddress": "[if(equals(parameters('privateIpAllocationMethod'), 'Static'), parameters('privateIpAddress'), null())]",
+              "subnet": {
+                "id": "[variables('subnetId')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('vmName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "dependsOn": [
+        "[variables('nicId')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('vmName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]",
+          "windowsConfiguration": {
+            "enableAutomaticUpdates": true,
+            "patchSettings": {
+              "patchMode": "AutomaticByPlatform"
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-datacenter-azure-edition",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[variables('osDiskName')]",
+            "createOption": "FromImage",
+            "caching": "ReadWrite",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[variables('nicId')]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "vmId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+    },
+    "nicId": {
+      "type": "string",
+      "value": "[variables('nicId')]"
+    },
+    "subnetId": {
+      "type": "string",
+      "value": "[variables('subnetId')]"
+    },
+    "privateIp": {
+      "type": "string",
+      "value": "[reference(variables('nicId')).ipConfigurations[0].properties.privateIPAddress]"
+    }
+  }
+}
