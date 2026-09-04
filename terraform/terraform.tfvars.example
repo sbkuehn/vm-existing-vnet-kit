@@ -1,0 +1,24 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars (gitignored) and fill in real values.
+# Do not commit admin_password. Prefer TF_VAR_admin_password or a vault lookup.
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+# network_subscription_id = "11111111-1111-1111-1111-111111111111"
+
+app_resource_group           = "rg-app-prod"
+existing_vnet_resource_group = "rg-network-prod"
+existing_vnet_name           = "vnet-hub-prod"
+existing_subnet_name         = "snet-servers"
+
+vm_name        = "vm-app-01"
+vm_size        = "Standard_D2s_v5"
+admin_username = "azureadmin"
+# admin_password = set via TF_VAR_admin_password
+
+# private_ip_address = "10.10.1.20"
+
+tags = {
+  environment  = "prod"
+  owner        = "platform-team"
+  deployedWith = "terraform"
+}
