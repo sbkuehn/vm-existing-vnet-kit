@@ -2,7 +2,7 @@
 
 Deploy an Azure VM into a virtual network that already exists, written three ways: ARM Template, Bicep, and Terraform.
 
-Companion repository for the Cloudy Musings post [https://www.shankuehn.io/post/deploying-a-vm-into-an-existing-virtual-network-arm-bicep-and-terraform](**Deploying a VM into an Existing Virtual Network: ARM, Bicep, and Terraform**).
+Companion repository for the Cloudy Musings post [https://www.shankuehn.io/post/deploying-a-vm-into-an-existing-virtual-network-arm-bicep-and-terraform](Deploying a VM into an Existing Virtual Network: ARM, Bicep, and Terraform).
 
 > Author: Shannon Eldridge-Kuehn
 > Created: 2026-09-04
